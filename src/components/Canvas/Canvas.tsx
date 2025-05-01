@@ -1,6 +1,6 @@
 
 import { useEffect, useRef, useState } from "react";
-import { fabric } from "fabric";
+import { Canvas as FabricCanvas, PencilBrush, EraserBrush } from "fabric";
 import { useToast } from "@/components/ui/use-toast";
 import { toast as sonnerToast } from "sonner";
 
@@ -12,7 +12,7 @@ interface CanvasProps {
 
 export const Canvas = ({ onExpressionUpdate }: CanvasProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const fabricCanvasRef = useRef<fabric.Canvas | null>(null);
+  const fabricCanvasRef = useRef<FabricCanvas | null>(null);
   const [mode, setMode] = useState<CanvasMode>("pen");
   const { toast } = useToast();
 
@@ -21,7 +21,7 @@ export const Canvas = ({ onExpressionUpdate }: CanvasProps) => {
     if (!canvasRef.current) return;
 
     // Create a new fabric canvas
-    const canvas = new fabric.Canvas(canvasRef.current, {
+    const canvas = new FabricCanvas(canvasRef.current, {
       isDrawingMode: true,
       width: 800,
       height: 400,
@@ -61,12 +61,12 @@ export const Canvas = ({ onExpressionUpdate }: CanvasProps) => {
     const canvas = fabricCanvasRef.current;
     
     if (mode === "pen") {
-      canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
+      canvas.freeDrawingBrush = new PencilBrush(canvas);
       canvas.freeDrawingBrush.width = 3;
       canvas.freeDrawingBrush.color = "#000000";
       canvas.isDrawingMode = true;
     } else if (mode === "eraser") {
-      canvas.freeDrawingBrush = new fabric.EraserBrush(canvas);
+      canvas.freeDrawingBrush = new EraserBrush(canvas);
       canvas.freeDrawingBrush.width = 10;
       canvas.isDrawingMode = true;
     }
