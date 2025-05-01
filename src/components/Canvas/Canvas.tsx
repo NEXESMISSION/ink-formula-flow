@@ -1,6 +1,6 @@
 
 import { useEffect, useRef, useState } from "react";
-import { Canvas as FabricCanvas, PencilBrush, EraserBrush } from "fabric";
+import { Canvas as FabricCanvas, PencilBrush } from "fabric";
 import { useToast } from "@/components/ui/use-toast";
 import { toast as sonnerToast } from "sonner";
 
@@ -66,8 +66,10 @@ export const Canvas = ({ onExpressionUpdate }: CanvasProps) => {
       canvas.freeDrawingBrush.color = "#000000";
       canvas.isDrawingMode = true;
     } else if (mode === "eraser") {
-      canvas.freeDrawingBrush = new EraserBrush(canvas);
+      // Create a PencilBrush with white color to simulate eraser
+      canvas.freeDrawingBrush = new PencilBrush(canvas);
       canvas.freeDrawingBrush.width = 10;
+      canvas.freeDrawingBrush.color = "#FFFFFF"; // Use white color to simulate eraser
       canvas.isDrawingMode = true;
     }
   }, [mode]);
