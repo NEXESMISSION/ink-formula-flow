@@ -28,9 +28,11 @@ export const Canvas = ({ onExpressionUpdate }: CanvasProps) => {
       backgroundColor: "#FFFFFF",
     });
 
-    // Configure the freeDrawingBrush
-    canvas.freeDrawingBrush.width = 3;
-    canvas.freeDrawingBrush.color = "#000000";
+    // Configure the freeDrawingBrush after ensuring it's created
+    if (canvas.freeDrawingBrush) {
+      canvas.freeDrawingBrush.width = 3;
+      canvas.freeDrawingBrush.color = "#000000";
+    }
 
     // Store the canvas instance
     fabricCanvasRef.current = canvas;
@@ -62,14 +64,18 @@ export const Canvas = ({ onExpressionUpdate }: CanvasProps) => {
     
     if (mode === "pen") {
       canvas.freeDrawingBrush = new PencilBrush(canvas);
-      canvas.freeDrawingBrush.width = 3;
-      canvas.freeDrawingBrush.color = "#000000";
+      if (canvas.freeDrawingBrush) {
+        canvas.freeDrawingBrush.width = 3;
+        canvas.freeDrawingBrush.color = "#000000";
+      }
       canvas.isDrawingMode = true;
     } else if (mode === "eraser") {
       // Create a PencilBrush with white color to simulate eraser
       canvas.freeDrawingBrush = new PencilBrush(canvas);
-      canvas.freeDrawingBrush.width = 10;
-      canvas.freeDrawingBrush.color = "#FFFFFF"; // Use white color to simulate eraser
+      if (canvas.freeDrawingBrush) {
+        canvas.freeDrawingBrush.width = 10;
+        canvas.freeDrawingBrush.color = "#FFFFFF"; // Use white color to simulate eraser
+      }
       canvas.isDrawingMode = true;
     }
   }, [mode]);

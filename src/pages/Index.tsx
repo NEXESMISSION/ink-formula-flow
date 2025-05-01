@@ -2,27 +2,46 @@
 import React, { useRef, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { DrawingTools } from "@/components/Canvas/DrawingTools";
-import { Canvas } from "@/components/Canvas/Canvas";
+import { Canvas, CanvasMode } from "@/components/Canvas/Canvas";
 import { OutputDisplay } from "@/components/OutputDisplay";
 
 const Index = () => {
   const [recognizedExpression, setRecognizedExpression] = useState("");
   const canvasContainerRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [mode, setMode] = useState<CanvasMode>("pen");
+  
   const { 
-    canvasRef, 
-    mode, 
-    setMode, 
+    canvasRef: canvasRefFromHook, 
+    mode: canvasMode, 
+    setMode: setCanvasMode, 
     recognizeExpression, 
     clearCanvas 
   } = Canvas({ 
     onExpressionUpdate: setRecognizedExpression 
   });
   
+  // Sync refs and state
+  React.useEffect(() => {
+    if (canvasRef.current && canvasRefFromHook) {
+      canvasRef.current = canvasRefFromHook.current;
+    }
+    if (canvasMode !== mode) {
+      setMode(canvasMode);
+    }
+  }, [canvasRefFromHook, canvasMode, mode]);
+  
+  // Handle mode change
+  const handleModeChange = (newMode: CanvasMode) => {
+    setMode(newMode);
+    setCanvasMode(newMode);
+  };
+  
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8">
       <div className="max-w-5xl mx-auto">
         <header className="mb-8 text-center">
-          <h1 className="text-3xl md:text-4xl font-bold text-inkformula-blue-dark mb-2">
+          <h1 className="text-3xl md:text-4xl font-bold text-blue-700 mb-2">
             InkFormula
           </h1>
           <p className="text-gray-600">
@@ -35,7 +54,7 @@ const Index = () => {
             <CardContent className="p-0">
               <DrawingTools 
                 mode={mode}
-                onModeChange={setMode}
+                onModeChange={handleModeChange}
                 onRecognize={recognizeExpression}
                 onClear={clearCanvas}
               />
@@ -43,7 +62,7 @@ const Index = () => {
                 ref={canvasContainerRef}
                 className="bg-white border-t border-gray-200 relative overflow-hidden"
               >
-                <canvas ref={canvasRef} className="block w-full h-auto" />
+                <canvas ref={canvasRefFromHook} className="block w-full h-[400px]" />
                 <div className="absolute bottom-2 right-2 text-xs text-gray-400 bg-white/80 px-2 py-1 rounded-full">
                   Draw your expression here
                 </div>
