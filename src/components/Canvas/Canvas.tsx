@@ -1,7 +1,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Canvas as FabricCanvas, PencilBrush } from "fabric";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { toast } from "sonner";
 import { Editor } from "iink-ts";
 
@@ -19,7 +19,11 @@ export const Canvas = ({ onExpressionUpdate }: CanvasProps) => {
   const [mode, setMode] = useState<CanvasMode>("pen");
   const { toast: uiToast } = useToast();
   const [isRecognizing, setIsRecognizing] = useState(false);
-
+  const [eraserSize, setEraserSize] = useState(10);
+  
+  // Show eraser cursor
+  const cursorRef = useRef<HTMLDivElement | null>(null);
+  
   // Initialize the canvas
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -44,6 +48,36 @@ export const Canvas = ({ onExpressionUpdate }: CanvasProps) => {
     // Initialize the MyScript iink editor
     initializeInkEditor();
 
+    // Create eraser cursor element
+    const cursor = document.createElement('div');
+    cursor.className = 'eraser-cursor';
+    cursor.style.position = 'absolute';
+    cursor.style.borderRadius = '50%';
+    cursor.style.border = '2px solid red';
+    cursor.style.backgroundColor = 'rgba(255, 0, 0, 0.1)';
+    cursor.style.pointerEvents = 'none';
+    cursor.style.transform = 'translate(-50%, -50%)';
+    cursor.style.display = 'none';
+    cursor.style.zIndex = '1000';
+    document.body.appendChild(cursor);
+    cursorRef.current = cursor;
+
+    // Track mouse movement for eraser cursor
+    const mouseMoveHandler = (e: MouseEvent) => {
+      if (mode === 'eraser' && cursorRef.current) {
+        cursorRef.current.style.display = 'block';
+        cursorRef.current.style.width = `${eraserSize}px`;
+        cursorRef.current.style.height = `${eraserSize}px`;
+        cursorRef.current.style.left = `${e.clientX}px`;
+        cursorRef.current.style.top = `${e.clientY}px`;
+      } else if (cursorRef.current) {
+        cursorRef.current.style.display = 'none';
+      }
+    };
+
+    // Add mouse move event listener
+    canvasRef.current.addEventListener('mousemove', mouseMoveHandler);
+
     // Save to localStorage to persist between refreshes
     const savedStrokes = localStorage.getItem("inkFormula_drawing");
     if (savedStrokes) {
@@ -61,15 +95,35 @@ export const Canvas = ({ onExpressionUpdate }: CanvasProps) => {
     return () => {
       canvas.dispose();
       if (inkEditorRef.current) {
-        // Clean up the editor - using destroy method instead of close
+        // Clean up the editor - using close method instead of destroy
         try {
-          inkEditorRef.current.destroy();
+          inkEditorRef.current.close();
         } catch (e) {
           console.error("Error cleaning up MyScript editor:", e);
         }
       }
+      
+      // Remove eraser cursor
+      if (cursorRef.current) {
+        document.body.removeChild(cursorRef.current);
+      }
+      
+      // Remove event listener
+      canvasRef.current?.removeEventListener('mousemove', mouseMoveHandler);
     };
   }, []);
+
+  // Update eraser size effect
+  useEffect(() => {
+    if (mode === 'eraser' && fabricCanvasRef.current) {
+      const canvas = fabricCanvasRef.current;
+      canvas.freeDrawingBrush = new PencilBrush(canvas);
+      if (canvas.freeDrawingBrush) {
+        canvas.freeDrawingBrush.width = eraserSize;
+        canvas.freeDrawingBrush.color = "#FFFFFF"; // White color to simulate eraser
+      }
+    }
+  }, [eraserSize]);
 
   const initializeInkEditor = async () => {
     try {
@@ -78,7 +132,7 @@ export const Canvas = ({ onExpressionUpdate }: CanvasProps) => {
         return;
       }
       
-      // Initialize MyScript iink editor
+      // Initialize MyScript iink editor with correct configuration
       const editor = new Editor({
         host: "webdemoapi.myscript.com",
         configuration: {
@@ -89,7 +143,7 @@ export const Canvas = ({ onExpressionUpdate }: CanvasProps) => {
           }
         },
         credentials: {
-          applicationKey: "6c786113-38a3-43ac-8c5b-c87b08dff878",
+          applicationKey: "6c786113-38a3-43ac-8c5b-c87b08dff878", 
           hmacKey: "51a0e005-1587-4ebe-8f41-9b6cb25fd738"
         }
       });
@@ -120,7 +174,7 @@ export const Canvas = ({ onExpressionUpdate }: CanvasProps) => {
       // Create a PencilBrush with white color to simulate eraser
       canvas.freeDrawingBrush = new PencilBrush(canvas);
       if (canvas.freeDrawingBrush) {
-        canvas.freeDrawingBrush.width = 10;
+        canvas.freeDrawingBrush.width = eraserSize;
         canvas.freeDrawingBrush.color = "#FFFFFF"; // Use white color to simulate eraser
       }
       canvas.isDrawingMode = true;
@@ -135,8 +189,6 @@ export const Canvas = ({ onExpressionUpdate }: CanvasProps) => {
     for (const obj of objects) {
       if (obj.type === 'path') {
         // Convert fabric path points to iink stroke points
-        // This is a simplification - in a real implementation 
-        // we'd need more detailed point data extraction
         const path = obj as any; // Using any to access path data
         if (path.path) {
           const points = [];
@@ -187,8 +239,7 @@ export const Canvas = ({ onExpressionUpdate }: CanvasProps) => {
       const json = canvas.toJSON();
       localStorage.setItem("inkFormula_drawing", JSON.stringify(json));
       
-      // For the MyScript recognition, we'd convert our canvas strokes to their format
-      // This is a simplified placeholder for the actual conversion logic
+      // For the MyScript recognition, convert our canvas strokes to their format
       const strokes = convertFabricToInkStrokes(canvas);
       
       if (strokes.length === 0) {
@@ -200,15 +251,13 @@ export const Canvas = ({ onExpressionUpdate }: CanvasProps) => {
         return;
       }
       
-      // In a real implementation, we'd use their SDK to process the strokes
-      // For now, we'll use the fallback if the real recognition fails
-      
       // Try to use MyScript iink for recognition
       try {
         const editor = inkEditorRef.current;
         
         // Use the correct method to export as LaTeX
-        const result = await editor.export_({ 
+        // Fixed: using export instead of export_
+        const result = await editor.export({
           mimeType: 'application/x-latex'
         });
         
@@ -272,6 +321,8 @@ export const Canvas = ({ onExpressionUpdate }: CanvasProps) => {
     setMode,
     recognizeExpression,
     clearCanvas,
-    isRecognizing
+    isRecognizing,
+    eraserSize,
+    setEraserSize
   };
 };

@@ -12,6 +12,7 @@ const Index = () => {
   const editorRef = useRef<HTMLDivElement>(null);
   const [mode, setMode] = useState<CanvasMode>("pen");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [eraserSize, setEraserSize] = useState(10);
   
   const { 
     canvasRef: canvasRefFromHook, 
@@ -20,7 +21,9 @@ const Index = () => {
     setMode: setCanvasMode, 
     recognizeExpression, 
     clearCanvas,
-    isRecognizing
+    isRecognizing,
+    eraserSize: hookEraserSize,
+    setEraserSize: setHookEraserSize
   } = Canvas({ 
     onExpressionUpdate: setRecognizedExpression 
   });
@@ -36,8 +39,11 @@ const Index = () => {
     if (canvasMode !== mode) {
       setMode(canvasMode);
     }
+    if (hookEraserSize !== eraserSize) {
+      setEraserSize(hookEraserSize || 10);
+    }
     setIsProcessing(isRecognizing || false);
-  }, [canvasRefFromHook, editorRefFromHook, canvasMode, mode, isRecognizing]);
+  }, [canvasRefFromHook, editorRefFromHook, canvasMode, mode, isRecognizing, hookEraserSize, eraserSize]);
   
   // Handle mode change
   const handleModeChange = (newMode: CanvasMode) => {
@@ -49,6 +55,14 @@ const Index = () => {
   const handleRecognize = () => {
     if (!isProcessing) {
       recognizeExpression();
+    }
+  };
+
+  // Handle eraser size change
+  const handleEraserSizeChange = (size: number) => {
+    setEraserSize(size);
+    if (setHookEraserSize) {
+      setHookEraserSize(size);
     }
   };
   
@@ -73,6 +87,8 @@ const Index = () => {
                 onRecognize={handleRecognize}
                 onClear={clearCanvas}
                 isProcessing={isProcessing}
+                eraserSize={eraserSize}
+                onEraserSizeChange={handleEraserSizeChange}
               />
               <div 
                 ref={canvasContainerRef}
