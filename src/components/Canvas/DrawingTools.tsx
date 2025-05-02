@@ -3,7 +3,7 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { CanvasMode } from "./Canvas";
-import { Eraser, Pen, RotateCcw, Sigma } from "lucide-react";
+import { Eraser, Pen, RotateCcw, Sigma, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -12,6 +12,7 @@ interface DrawingToolsProps {
   onModeChange: (mode: CanvasMode) => void;
   onRecognize: () => void;
   onClear: () => void;
+  isProcessing?: boolean;
 }
 
 export const DrawingTools: React.FC<DrawingToolsProps> = ({
@@ -19,6 +20,7 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
   onModeChange,
   onRecognize,
   onClear,
+  isProcessing = false,
 }) => {
   return (
     <div className="flex items-center justify-between mb-2 p-2 bg-white border rounded-md shadow-sm">
@@ -32,8 +34,9 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
                 onClick={() => onModeChange("pen")}
                 className={cn(
                   "h-9 w-9",
-                  mode === "pen" && "bg-inkformula-blue text-white hover:bg-inkformula-blue/90"
+                  mode === "pen" && "bg-blue-700 text-white hover:bg-blue-800"
                 )}
+                disabled={isProcessing}
               >
                 <Pen className="h-5 w-5" />
               </Button>
@@ -53,8 +56,9 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
                 onClick={() => onModeChange("eraser")}
                 className={cn(
                   "h-9 w-9",
-                  mode === "eraser" && "bg-inkformula-blue text-white hover:bg-inkformula-blue/90"
+                  mode === "eraser" && "bg-blue-700 text-white hover:bg-blue-800"
                 )}
+                disabled={isProcessing}
               >
                 <Eraser className="h-5 w-5" />
               </Button>
@@ -75,6 +79,7 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
                 size="icon"
                 onClick={onClear}
                 className="h-9 w-9"
+                disabled={isProcessing}
               >
                 <RotateCcw className="h-5 w-5" />
               </Button>
@@ -89,10 +94,20 @@ export const DrawingTools: React.FC<DrawingToolsProps> = ({
       <Button
         onClick={onRecognize}
         variant="default"
-        className="bg-inkformula-blue hover:bg-inkformula-blue-dark"
+        className="bg-blue-700 hover:bg-blue-800"
+        disabled={isProcessing}
       >
-        <Sigma className="h-4 w-4 mr-2" />
-        Recognize Expression
+        {isProcessing ? (
+          <>
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            Processing...
+          </>
+        ) : (
+          <>
+            <Sigma className="h-4 w-4 mr-2" />
+            Recognize Expression
+          </>
+        )}
       </Button>
     </div>
   );

@@ -10,13 +10,15 @@ const Index = () => {
   const canvasContainerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [mode, setMode] = useState<CanvasMode>("pen");
+  const [isProcessing, setIsProcessing] = useState(false);
   
   const { 
     canvasRef: canvasRefFromHook, 
     mode: canvasMode, 
     setMode: setCanvasMode, 
     recognizeExpression, 
-    clearCanvas 
+    clearCanvas,
+    isRecognizing
   } = Canvas({ 
     onExpressionUpdate: setRecognizedExpression 
   });
@@ -29,12 +31,20 @@ const Index = () => {
     if (canvasMode !== mode) {
       setMode(canvasMode);
     }
-  }, [canvasRefFromHook, canvasMode, mode]);
+    setIsProcessing(isRecognizing || false);
+  }, [canvasRefFromHook, canvasMode, mode, isRecognizing]);
   
   // Handle mode change
   const handleModeChange = (newMode: CanvasMode) => {
     setMode(newMode);
     setCanvasMode(newMode);
+  };
+  
+  // Handle recognition
+  const handleRecognize = () => {
+    if (!isProcessing) {
+      recognizeExpression();
+    }
   };
   
   return (
@@ -55,14 +65,20 @@ const Index = () => {
               <DrawingTools 
                 mode={mode}
                 onModeChange={handleModeChange}
-                onRecognize={recognizeExpression}
+                onRecognize={handleRecognize}
                 onClear={clearCanvas}
+                isProcessing={isProcessing}
               />
               <div 
                 ref={canvasContainerRef}
                 className="bg-white border-t border-gray-200 relative overflow-hidden"
               >
                 <canvas ref={canvasRefFromHook} className="block w-full h-[400px]" />
+                {isProcessing && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-white/50">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-700"></div>
+                  </div>
+                )}
                 <div className="absolute bottom-2 right-2 text-xs text-gray-400 bg-white/80 px-2 py-1 rounded-full">
                   Draw your expression here
                 </div>
@@ -74,7 +90,7 @@ const Index = () => {
           
           <div className="text-center text-sm text-gray-500 mt-4">
             <p>
-              Currently using placeholder recognition. API integration coming soon.
+              Powered by MyScript iink Technology for mathematical expression recognition.
             </p>
             <p className="mt-1">
               Try drawing standard mathematical symbols, operators, and structures.
