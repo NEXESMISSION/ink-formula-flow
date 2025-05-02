@@ -9,11 +9,13 @@ const Index = () => {
   const [recognizedExpression, setRecognizedExpression] = useState("");
   const canvasContainerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const editorRef = useRef<HTMLDivElement>(null);
   const [mode, setMode] = useState<CanvasMode>("pen");
   const [isProcessing, setIsProcessing] = useState(false);
   
   const { 
     canvasRef: canvasRefFromHook, 
+    editorRef: editorRefFromHook,
     mode: canvasMode, 
     setMode: setCanvasMode, 
     recognizeExpression, 
@@ -28,11 +30,14 @@ const Index = () => {
     if (canvasRef.current && canvasRefFromHook) {
       canvasRef.current = canvasRefFromHook.current;
     }
+    if (editorRef.current && editorRefFromHook) {
+      editorRef.current = editorRefFromHook.current;
+    }
     if (canvasMode !== mode) {
       setMode(canvasMode);
     }
     setIsProcessing(isRecognizing || false);
-  }, [canvasRefFromHook, canvasMode, mode, isRecognizing]);
+  }, [canvasRefFromHook, editorRefFromHook, canvasMode, mode, isRecognizing]);
   
   // Handle mode change
   const handleModeChange = (newMode: CanvasMode) => {
@@ -74,6 +79,7 @@ const Index = () => {
                 className="bg-white border-t border-gray-200 relative overflow-hidden"
               >
                 <canvas ref={canvasRefFromHook} className="block w-full h-[400px]" />
+                <div ref={editorRefFromHook} className="hidden" style={{ width: '800px', height: '400px', touchAction: 'none' }} />
                 {isProcessing && (
                   <div className="absolute inset-0 flex items-center justify-center bg-white/50">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-700"></div>

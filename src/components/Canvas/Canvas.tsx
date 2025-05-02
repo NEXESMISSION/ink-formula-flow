@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Canvas as FabricCanvas, PencilBrush } from "fabric";
 import { useToast } from "@/components/ui/use-toast";
-import { sonner as sonnerToast } from "sonner";
+import { toast } from "sonner";
 import { Editor } from "iink-ts";
 
 export type CanvasMode = "pen" | "eraser";
@@ -14,9 +14,10 @@ interface CanvasProps {
 export const Canvas = ({ onExpressionUpdate }: CanvasProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fabricCanvasRef = useRef<FabricCanvas | null>(null);
+  const editorRef = useRef<HTMLDivElement>(null);
   const inkEditorRef = useRef<Editor | null>(null);
   const [mode, setMode] = useState<CanvasMode>("pen");
-  const { toast } = useToast();
+  const { toast: uiToast } = useToast();
   const [isRecognizing, setIsRecognizing] = useState(false);
 
   // Initialize the canvas
@@ -49,7 +50,7 @@ export const Canvas = ({ onExpressionUpdate }: CanvasProps) => {
       try {
         canvas.loadFromJSON(savedStrokes, () => {
           canvas.renderAll();
-          sonnerToast.success("Drawing restored from previous session");
+          toast.success("Drawing restored from previous session");
         });
       } catch (error) {
         console.error("Error loading saved drawing:", error);
@@ -60,13 +61,23 @@ export const Canvas = ({ onExpressionUpdate }: CanvasProps) => {
     return () => {
       canvas.dispose();
       if (inkEditorRef.current) {
-        inkEditorRef.current.close();
+        // Clean up the editor - using destroy method instead of close
+        try {
+          inkEditorRef.current.destroy();
+        } catch (e) {
+          console.error("Error cleaning up MyScript editor:", e);
+        }
       }
     };
   }, []);
 
   const initializeInkEditor = async () => {
     try {
+      if (!editorRef.current) {
+        console.error("Editor reference not found");
+        return;
+      }
+      
       // Initialize MyScript iink editor
       const editor = new Editor({
         host: "webdemoapi.myscript.com",
@@ -82,12 +93,13 @@ export const Canvas = ({ onExpressionUpdate }: CanvasProps) => {
           hmacKey: "51a0e005-1587-4ebe-8f41-9b6cb25fd738"
         }
       });
-      
+
+      // Store editor reference
       inkEditorRef.current = editor;
       console.log("MyScript iink editor initialized successfully");
     } catch (error) {
       console.error("Error initializing MyScript iink editor:", error);
-      sonnerToast.error("Error initializing recognition service");
+      toast.error("Error initializing recognition service");
     }
   };
 
@@ -159,7 +171,7 @@ export const Canvas = ({ onExpressionUpdate }: CanvasProps) => {
   // Perform expression recognition using MyScript iink
   const recognizeExpression = async () => {
     if (!fabricCanvasRef.current || !inkEditorRef.current) {
-      toast({
+      uiToast({
         title: "Recognition Error",
         description: "Canvas or recognition service not initialized properly.",
         variant: "destructive"
@@ -180,7 +192,7 @@ export const Canvas = ({ onExpressionUpdate }: CanvasProps) => {
       const strokes = convertFabricToInkStrokes(canvas);
       
       if (strokes.length === 0) {
-        toast({
+        uiToast({
           title: "No Drawing Detected",
           description: "Please draw something first.",
         });
@@ -194,13 +206,15 @@ export const Canvas = ({ onExpressionUpdate }: CanvasProps) => {
       // Try to use MyScript iink for recognition
       try {
         const editor = inkEditorRef.current;
-        // This is pseudocode - actual implementation would use MyScript's API
-        // to send the strokes and get back a recognition result
-        const result = await editor.recognize(strokes);
+        
+        // Use the correct method to export as LaTeX
+        const result = await editor.export_({ 
+          mimeType: 'application/x-latex'
+        });
         
         if (result && onExpressionUpdate) {
           onExpressionUpdate(result);
-          toast({
+          uiToast({
             title: "Expression Recognized",
             description: "Your mathematical expression has been converted to LaTeX.",
           });
@@ -212,7 +226,7 @@ export const Canvas = ({ onExpressionUpdate }: CanvasProps) => {
         const placeholder = "\\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}";
         if (onExpressionUpdate) {
           onExpressionUpdate(placeholder);
-          toast({
+          uiToast({
             title: "Using Placeholder Recognition",
             description: "Recognition service error. Using placeholder formula.",
           });
@@ -220,7 +234,7 @@ export const Canvas = ({ onExpressionUpdate }: CanvasProps) => {
       }
     } catch (error) {
       console.error("Error during recognition process:", error);
-      toast({
+      uiToast({
         title: "Recognition Failed",
         description: "An error occurred during the expression recognition.",
         variant: "destructive"
@@ -247,12 +261,13 @@ export const Canvas = ({ onExpressionUpdate }: CanvasProps) => {
       }
       
       localStorage.removeItem("inkFormula_drawing");
-      sonnerToast.info("Canvas cleared");
+      toast.info("Canvas cleared");
     }
   };
 
   return {
     canvasRef,
+    editorRef,
     mode,
     setMode,
     recognizeExpression,
